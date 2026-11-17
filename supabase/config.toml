@@ -1,0 +1,3 @@
+[functions.metal-rates]
+# This endpoint only publishes cached public market prices; the provider key and database service key stay server-side.
+verify_jwt = false
