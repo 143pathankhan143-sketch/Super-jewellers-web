@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Private admin area - must never appear in search results
+Disallow: /admin.html
+
+# Backend SQL/config files - not web content
+Disallow: /supabase/
+
+Sitemap: https://143pathankhan143-sketch.github.io/Super-jewellers-web/sitemap.xml
