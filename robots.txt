@@ -1,11 +1,8 @@
 User-agent: *
 Allow: /
 
-# Private admin area - must never appear in search results
-Disallow: /admin.html
-
-# Backend SQL/config files - not web content
-Disallow: /supabase/
+# Only public storefront pages, styles, scripts and images are served.
+# No admin area or backend files exist in this project.
 
 Sitemap: https://143pathankhan143-sketch.github.io/Super-jewellers-web/sitemap.xml
 Sitemap: https://143pathankhan143-sketch.github.io/Super-jewellers-web/sitemap-pages.xml
