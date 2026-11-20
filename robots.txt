@@ -8,3 +8,4 @@ Disallow: /admin.html
 Disallow: /supabase/
 
 Sitemap: https://143pathankhan143-sketch.github.io/Super-jewellers-web/sitemap.xml
+Sitemap: https://143pathankhan143-sketch.github.io/Super-jewellers-web/sitemap-pages.xml
