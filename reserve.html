@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#090907">
+  <title>Reserve a Piece for Viewing — Super Jewellers Latur</title>
+  <link rel="canonical" href="https://143pathankhan143-sketch.github.io/Super-jewellers-web/reserve.html">
+  <meta name="robots" content="index,follow">
+  <meta name="description" content="Reserve a piece of jewellery at Super Jewellers Latur for an in-store viewing. Choose the piece, your preferred visit date and time — the store confirms availability before your visit. This is not an online purchase.">
+  <meta property="og:title" content="Reserve a Piece for Viewing — Super Jewellers Latur">
+  <meta property="og:description" content="Reserve jewellery for an in-store viewing at Super Jewellers Latur. Confirmed by the store — never an online purchase.">
+  <meta property="og:image" content="https://143pathankhan143-sketch.github.io/Super-jewellers-web/assets/royal-diamond.jpg">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23090907'/%3E%3Ctext x='32' y='44' font-family='Georgia,serif' font-size='28' font-weight='700' fill='%23c9a227' text-anchor='middle'%3ESJ%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="storefront" data-page="reserve">
+  <header class="site-header" id="top">
+    <a class="brand" href="index.html" aria-label="Super Jewellers home"><span class="brand-mark">SJ</span><span class="brand-name">SUPER <b>JEWELLERS</b><small>LATUR · MAHARASHTRA</small></span></a>
+    <button class="menu-toggle" aria-label="Open navigation" aria-expanded="false"><i></i><i></i></button>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="catalog.html">Collections</a>
+      <a href="custom.html">Custom Jewellery</a>
+      <a href="appointment.html">Book a Visit</a>
+      <a href="about.html">About</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+    <a class="header-cta" href="appointment.html">Book a Visit <span>↗</span></a>
+  </header>
+
+  <main>
+    <section class="form-page">
+      <div class="section-wrap form-layout">
+        <div class="form-intro" data-reveal>
+          <p class="eyebrow light">PRODUCT RESERVATION</p>
+          <h1>Reserve a piece<br><em>for your visit.</em></h1>
+          <p class="page-hero-copy">Tell us which jewellery you would love to see, and when you plan to visit. The store reviews availability and confirms your reservation on WhatsApp.</p>
+          <ul class="form-notes">
+            <li><b>This is a request, not a purchase.</b> No payment is taken online.</li>
+            <li>The piece is held only after the store <b>approves</b> your reservation.</li>
+            <li>You may select <b>multiple pieces</b> for one showroom visit.</li>
+            <li>Business hours: <span data-hours>Monday – Saturday: 11:00 AM – 8:30 PM · Sunday: 11:00 AM – 6:00 PM</span></li>
+          </ul>
+          <a class="text-link text-link-light" href="reservation-policy.html">Read the Reservation Policy <span>↗</span></a>
+        </div>
+
+        <div class="form-card" data-reveal>
+          <form id="booking-form" novalidate>
+            <div class="form-banner" hidden></div>
+
+            <div class="form-field">
+              <label for="f-name">Full name *</label>
+              <input type="text" id="f-name" name="name" autocomplete="name" required placeholder="Your full name">
+            </div>
+
+            <div class="form-field">
+              <label for="f-phone">Mobile number *</label>
+              <input type="tel" id="f-phone" name="phone" inputmode="numeric" autocomplete="tel" required placeholder="10-digit mobile number">
+            </div>
+
+            <div class="form-field">
+              <label for="product-search">Which jewellery would you like to view? *</label>
+              <input type="search" id="product-search" placeholder="Search by name or product code…" autocomplete="off">
+              <div class="picker-list" id="reservation-products"></div>
+              <div class="selected-products" id="selected-products"></div>
+              <input type="hidden" id="reservation-product-data" value="[]">
+            </div>
+
+            <div class="form-field">
+              <label for="f-manual-product">…or type the piece name if it is not listed</label>
+              <input type="text" id="f-manual-product" name="manualProduct" placeholder="e.g. Arabic Haar 916 (saw it on Instagram)">
+            </div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <label for="f-date">Preferred visit date *</label>
+                <input type="date" id="f-date" name="date" required>
+              </div>
+              <div class="form-field">
+                <label for="f-time">Preferred time *</label>
+                <select id="f-time" name="time" required><option value="" disabled selected>Choose a date first</option></select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <label for="f-visitors">Number of visitors</label>
+                <input type="number" id="f-visitors" name="visitors" min="1" max="12" value="1">
+              </div>
+              <div class="form-field">
+                <label for="f-message">Additional message</label>
+                <input type="text" id="f-message" name="message" placeholder="Anything we should keep ready?">
+              </div>
+            </div>
+
+            <div class="form-field form-check">
+              <label><input type="checkbox" id="f-consent" required> I agree to be contacted by Super Jewellers on WhatsApp or phone about this reservation. *</label>
+            </div>
+
+            <p class="form-legal">Submitting sends your request to the store. It does <b>not</b> confirm the reservation — the store approves it first. <a href="reservation-policy.html">Reservation Policy</a> · <a href="cancellation-policy.html">Cancellation Policy</a>.</p>
+
+            <button class="button button-gold full-button button-shimmer" type="submit">Submit reservation request <span>↗</span></button>
+          </form>
+
+          <div id="success-panel" class="success-panel" tabindex="-1" hidden></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-top">
+      <a class="brand footer-brand" href="index.html"><span class="brand-mark">SJ</span><span class="brand-name">SUPER <b>JEWELLERS</b><small>LATUR · MAHARASHTRA</small></span></a>
+      <p class="footer-signoff">Weddings. Investments.<br><em>Special moments.</em></p>
+      <div class="footer-social"><span>SOCIAL &amp; WHATSAPP</span>
+        <a href="https://www.instagram.com/super_jewellers__" target="_blank" rel="noopener" data-social="instagram">Super Jewellers on Instagram ↗</a>
+        <a href="https://wa.me/919764453486" data-whatsapp-general target="_blank" rel="noopener">WhatsApp us ↗</a>
+      </div>
+      <div class="footer-contact"><span>THE HOUSE</span>
+        <a href="contact.html">Contact &amp; Directions</a>
+        <a href="catalog.html">Catalogue</a>
+        <a href="appointment.html">Book a Visit</a>
+        <a href="faq.html">FAQ</a>
+        <a href="terms.html">Terms &amp; Support</a>
+        <a href="privacy.html">Privacy Policy</a>
+      </div>
+    </div>
+    <div class="footer-bottom"><span>© <span id="year"></span> SUPER JEWELLERS. ALL RIGHTS RESERVED.</span><span>INDIAN ARTISTRY · MADE TO BE KEPT</span></div>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="js/config.js"></script><script src="js/products.js"></script><script src="js/store.js"></script>
+  <script src="js/main.js" defer></script><script src="js/forms.js" defer></script>
+</body>
+</html>
