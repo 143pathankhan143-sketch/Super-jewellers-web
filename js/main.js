@@ -1,24 +1,20 @@
 /* ============================================================
-   SUPER JEWELLERS · STOREFRONT SCRIPT
-   Pure static site — no backend, no login, no third-party API.
+   SUPER JEWELLERS · STOREFRONT SCRIPT (shared)
+   Header, navigation, scroll reveals, WhatsApp float,
+   business-info injection, homepage dynamic sections.
    ============================================================ */
 (function () {
   'use strict';
 
-  var cfg = window.SJ_CONFIG || {};
-  var products = (Array.isArray(window.SJ_PRODUCTS) ? window.SJ_PRODUCTS : []).filter(function (p) {
-    return p && p.name;
-  });
-
-  var grid = document.querySelector('#product-grid');
-  var dialog = document.querySelector('#product-dialog');
-  var tabsWrap = document.querySelector('#category-tabs');
-  var note = document.querySelector('#catalog-note');
-  var activeCategory = 'All';
-  var phoneDigits = String(cfg.businessPhone || '').replace(/[^\d+]/g, '');
-  var waDigits = String(cfg.whatsappNumber || '').replace(/\D/g, '');
+  var store = window.SJ || {};
+  var cfgRaw = window.SJ_CONFIG || {};
+  var cfg = typeof store.effectiveConfig === 'function' ? store.effectiveConfig() : cfgRaw;
+  var products = typeof store.getPublicProducts === 'function' ? store.getPublicProducts() : [];
 
   /* ---------- helpers ---------- */
+
+  function $(sel, ctx) { return (ctx || document).querySelector(sel); }
+  function $$(sel, ctx) { return Array.prototype.slice.call((ctx || document).querySelectorAll(sel)); }
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
@@ -43,241 +39,294 @@
     return 'assets/royal-gold.jpg';
   }
 
-  function safeImage(path, category) {
-    return path ? path : fallbackImage(category);
+  function primaryImage(p) {
+    return (p.images && p.images[0]) || fallbackImage(p.category);
   }
 
-  function enquiryUrl(product) {
-    var message = 'Hello Super Jewellers, I would like to enquire about ' + product.name +
-      (Number(product.price) > 0 ? ' (' + formatPrice(product.price) + ')' : '') + '.';
-    if (waDigits) return 'https://wa.me/' + waDigits + '?text=' + encodeURIComponent(message);
-    if (cfg.whatsappChannelUrl) return cfg.whatsappChannelUrl;
-    return 'tel:' + phoneDigits;
+  function availabilityLabel(a) {
+    var map = (store.AVAILABILITY) || {};
+    return map[a] || 'Available';
   }
 
-  function enquiryLabel() {
-    return waDigits ? 'Enquire on WhatsApp' : 'Ask on WhatsApp channel';
+  function toast(message) {
+    var el = $('#toast');
+    if (!el) return;
+    el.textContent = message;
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.classList.remove('show'); }, 3200);
   }
 
-  /* ---------- catalogue ---------- */
+  window.SJ_UI = {
+    $: $, $$: $$, escapeHtml: escapeHtml, formatPrice: formatPrice,
+    fallbackImage: fallbackImage, primaryImage: primaryImage,
+    availabilityLabel: availabilityLabel, toast: toast
+  };
 
-  function renderProducts() {
-    if (!grid) return;
+  /* ---------- announcement bar ---------- */
 
-    if (!products.length) {
-      grid.innerHTML =
-        '<div class="empty-state">Our online collection is being photographed in the showroom.' +
-        '<br><small>Visit us at Bhande Gallee, Latur — or call ' +
-        '<a href="tel:' + escapeHtml(phoneDigits) + '">' + escapeHtml(cfg.businessPhone || '') + '</a>' +
-        ' to see today\'s designs.</small></div>';
-      if (note) note.textContent = '';
-      return;
-    }
+  (function announcement() {
+    var text = String(cfg.announcement || '').trim();
+    if (!text) return;
+    var bar = document.createElement('div');
+    bar.className = 'announcement-bar';
+    bar.setAttribute('role', 'status');
+    bar.innerHTML = '<span>' + escapeHtml(text) + '</span>';
+    var header = $('.site-header');
+    if (header && header.parentNode) header.parentNode.insertBefore(bar, header);
+  })();
 
-    var list = activeCategory === 'All'
-      ? products
-      : products.filter(function (p) { return String(p.category) === activeCategory; });
+  /* ---------- business details injection ---------- */
 
-    if (!list.length) {
-      grid.innerHTML = '<div class="empty-state">No pieces in this collection right now.<br><small>Please check the other collections, or call us.</small></div>';
-      return;
-    }
+  function setBusinessInfo() {
+    var phone = String(cfg.businessPhone || '').trim();
+    var address = String(cfg.businessAddress || '').trim();
+    var addressShort = String(cfg.businessAddressShort || cfg.businessAddress || '').trim();
+    var hours = String(cfg.hoursDisplay || '').trim();
+    var phoneHref = 'tel:' + phone.replace(/[^\d+]/g, '');
 
-    grid.innerHTML = list.map(function (p, index) {
-      var image = escapeHtml(safeImage(p.image, p.category));
-      var name = escapeHtml(p.name);
-      return '<article class="product-card" tabindex="0" data-index="' + index + '" aria-label="View ' + name + ' details">' +
-        '<div class="product-photo">' +
-        '<img loading="lazy" decoding="async" src="' + image + '" alt="' + name + '" onerror="this.onerror=null;this.src=\'' + fallbackImage(p.category) + '\'">' +
-        '<span class="product-badge">' + escapeHtml(p.category || 'Jewellery') + '</span>' +
-        '<button class="product-open" aria-label="View ' + name + ' details">↗</button>' +
-        '</div>' +
-        '<div class="product-info">' +
-        '<span class="category-label">' + escapeHtml(p.category || 'Jewellery') + '</span>' +
-        '<h3>' + name + '</h3>' +
-        '<p>' + escapeHtml(p.description || '') + '</p>' +
-        '<span class="product-price">' + formatPrice(p.price) + '</span>' +
-        '<a class="product-enquire" href="' + escapeHtml(enquiryUrl(p)) + '" target="_blank" rel="noopener">' + enquiryLabel() + ' <span>↗</span></a>' +
-        '</div></article>';
-    }).join('');
+    $$('[data-business-address]').forEach(function (el) { if (address) el.textContent = address; });
+    $$('[data-business-address-short], [data-footer-address]').forEach(function (el) { if (addressShort) el.textContent = addressShort; });
 
-    Array.prototype.forEach.call(grid.querySelectorAll('.product-card'), function (card) {
-      var item = list[Number(card.dataset.index)];
-      function open() { openProduct(item); }
-      card.addEventListener('click', function (event) {
-        if (event.target.closest('.product-enquire')) return;
-        open();
-      });
-      card.addEventListener('keydown', function (event) {
-        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); }
+    $$('[data-business-phone-link], [data-footer-phone]').forEach(function (el) {
+      if (!phone) { el.style.display = 'none'; return; }
+      el.textContent = phone;
+      el.href = phoneHref;
+    });
+    $$('[data-phone-text]').forEach(function (el) { if (phone) el.textContent = phone; });
+
+    $$('[data-hours]').forEach(function (el) { if (hours) el.textContent = hours; });
+
+    /* WhatsApp buttons */
+    var wa = String(cfg.whatsappNumber || '').replace(/\D/g, '');
+    $$('[data-whatsapp-general]').forEach(function (el) {
+      if (wa) {
+        el.href = 'https://wa.me/' + wa + '?text=' + encodeURIComponent(
+          'Hello Super Jewellers, I would like to know more about your collections. Please share details.');
+        el.target = '_blank'; el.rel = 'noopener';
+      } else if (cfg.whatsappChannelUrl) {
+        el.href = cfg.whatsappChannelUrl; el.target = '_blank'; el.rel = 'noopener';
+      }
+    });
+
+    $$('[data-social]').forEach(function (link) {
+      var url = String(cfg[link.dataset.social + 'Url'] || '').trim();
+      if (/^https:\/\//i.test(url)) { link.href = url; link.target = '_blank'; link.rel = 'noopener'; }
+      else link.style.display = 'none';
+    });
+
+    [['[data-map-link]', 'mapsUrl'], ['[data-review-link]', 'reviewUrl'],
+     ['[data-whatsapp-channel]', 'whatsappChannelUrl']].forEach(function (pair) {
+      $$(pair[0]).forEach(function (link) {
+        var url = String(cfg[pair[1]] || '').trim();
+        if (/^https:\/\//i.test(url)) { link.href = url; link.target = '_blank'; link.rel = 'noopener'; }
+        else link.style.display = 'none';
       });
     });
 
-    if (note) note.textContent = 'Every piece is subject to availability. Confirm weight, purity and certification in store.';
-  }
-
-  function renderTabs() {
-    if (!tabsWrap) return;
-    var categories = [];
-    products.forEach(function (p) {
-      if (p.category && categories.indexOf(p.category) === -1) categories.push(p.category);
+    /* Google rating chips */
+    $$('[data-google-rating]').forEach(function (el) {
+      el.textContent = String(cfg.googleRating || '') + ' / 5';
     });
-    if (categories.length < 2) { tabsWrap.hidden = true; return; }
-
-    tabsWrap.hidden = false;
-    tabsWrap.innerHTML = [['All', 'The full edit']].concat(categories.map(function (c) { return [c, c]; }))
-      .map(function (pair, i) {
-        return '<button class="category-tab' + (i === 0 ? ' active' : '') + '" data-category="' + escapeHtml(pair[0]) + '" role="tab" aria-selected="' + (i === 0) + '">' + escapeHtml(pair[1]) + '</button>';
-      }).join('');
-
-    tabsWrap.addEventListener('click', function (event) {
-      var button = event.target.closest('.category-tab');
-      if (!button) return;
-      Array.prototype.forEach.call(tabsWrap.querySelectorAll('.category-tab'), function (b) {
-        b.classList.toggle('active', b === button);
-        b.setAttribute('aria-selected', String(b === button));
-      });
-      activeCategory = button.dataset.category;
-      renderProducts();
+    $$('[data-google-review-count]').forEach(function (el) {
+      el.textContent = String(cfg.googleReviewCount || '') + ' Google reviews';
     });
   }
 
-  function openProduct(product) {
-    if (!product || !dialog) return;
-    var content = document.querySelector('#dialog-content');
-    if (!content) return;
-    var image = escapeHtml(safeImage(product.image, product.category));
-    content.innerHTML = '<div class="dialog-product">' +
-      '<img src="' + image + '" alt="' + escapeHtml(product.name) + '">' +
-      '<div class="dialog-product-copy">' +
-      '<p class="eyebrow">' + escapeHtml(String(product.category || 'Jewellery').toUpperCase()) + ' · SUPER JEWELLERS</p>' +
-      '<h2>' + escapeHtml(product.name) + '</h2>' +
-      '<p>' + escapeHtml(product.description || '') + '</p>' +
-      '<div class="dialog-price">' + formatPrice(product.price) + '</div>' +
-      '<a class="button button-dark" href="' + escapeHtml(enquiryUrl(product)) + '" target="_blank" rel="noopener">' + enquiryLabel() + ' <span>↗</span></a>' +
-      '</div></div>';
-    if (typeof dialog.showModal === 'function') dialog.showModal();
+  /* ---------- header / navigation ---------- */
+
+  var header = $('.site-header');
+  if (header) {
+    var onScroll = function () {
+      header.classList.toggle('scrolled', (window.scrollY || 0) > 12);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
   }
 
-  /* ---------- navigation & chrome ---------- */
-
-  var menuToggle = document.querySelector('.menu-toggle');
+  var menuToggle = $('.menu-toggle');
   if (menuToggle) {
     menuToggle.addEventListener('click', function (event) {
-      var nav = document.querySelector('.main-nav');
+      var nav = $('.main-nav');
       if (!nav) return;
       var open = nav.classList.toggle('open');
       event.currentTarget.setAttribute('aria-expanded', String(open));
       event.currentTarget.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
     });
   }
-  Array.prototype.forEach.call(document.querySelectorAll('.main-nav a'), function (a) {
+  $$('.main-nav a').forEach(function (a) {
     a.addEventListener('click', function () {
-      var nav = document.querySelector('.main-nav');
+      var nav = $('.main-nav');
       if (nav) nav.classList.remove('open');
+      if (menuToggle) menuToggle.setAttribute('aria-expanded', 'false');
     });
   });
 
-  if (dialog) {
-    var closeBtn = document.querySelector('.dialog-close');
-    if (closeBtn) closeBtn.addEventListener('click', function () { dialog.close(); });
-    dialog.addEventListener('click', function (event) { if (event.target === dialog) dialog.close(); });
-  }
-
-  function jumpToCategory(category) {
-    var tab = category && tabsWrap
-      ? tabsWrap.querySelector('.category-tab[data-category="' + category + '"]')
-      : null;
-    if (tab) tab.click();
-    var catalog = document.querySelector('#catalog');
-    if (catalog) catalog.scrollIntoView({ behavior: 'smooth' });
-  }
-
-  Array.prototype.forEach.call(document.querySelectorAll('[data-collection]'), function (tile) {
-    tile.addEventListener('click', function (event) {
-      event.preventDefault();
-      jumpToCategory(tile.dataset.collection);
+  /* Active nav link by pathname */
+  (function markActive() {
+    var path = (location.pathname.split('/').pop() || 'index.html');
+    if (path === '') path = 'index.html';
+    $$('.main-nav a').forEach(function (a) {
+      var href = (a.getAttribute('href') || '').split('?')[0];
+      if (href === path) a.classList.add('current');
     });
-  });
+  })();
 
-  var beshineLink = document.querySelector('[data-beshine-link]');
-  if (beshineLink) {
-    beshineLink.addEventListener('click', function (event) {
-      event.preventDefault();
-      jumpToCategory('Silver');
-    });
-  }
+  /* ---------- scroll reveal (IntersectionObserver) ---------- */
 
-  /* ---------- business details ---------- */
-
-  function setBusinessInfo() {
-    var phone = String(cfg.businessPhone || '').trim();
-    var address = String(cfg.businessAddress || '').trim();
-    var hours = String(cfg.openingHours || '').trim();
-
-    Array.prototype.forEach.call(document.querySelectorAll('[data-business-address], [data-footer-address]'), function (el) {
-      if (address) el.textContent = address;
-    });
-
-    Array.prototype.forEach.call(document.querySelectorAll('[data-business-phone-link], [data-footer-phone]'), function (el) {
-      if (!phone) { el.style.display = 'none'; return; }
-      el.textContent = phone;
-      el.href = 'tel:' + phone.replace(/[^\d+]/g, '');
-    });
-
-    if (hours) {
-      var hoursEl = document.querySelector('.visit-details > div:last-child p');
-      if (hoursEl) hoursEl.textContent = hours;
+  (function reveals() {
+    var items = $$('[data-reveal]');
+    if (!items.length) return;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || !('IntersectionObserver' in window)) {
+      items.forEach(function (el) { el.classList.add('is-visible'); });
+      return;
     }
-
-    var contact = document.querySelector('[data-contact-whatsapp]');
-    if (contact) {
-      if (waDigits) {
-        contact.href = 'https://wa.me/' + waDigits + '?text=' + encodeURIComponent('Hello Super Jewellers, I would like to get in touch.');
-        contact.textContent = 'WhatsApp enquiry ↗';
-        contact.target = '_blank';
-        contact.rel = 'noopener';
-      } else if (cfg.whatsappChannelUrl) {
-        contact.href = cfg.whatsappChannelUrl;
-        contact.textContent = 'Join WhatsApp Channel ↗';
-        contact.target = '_blank';
-        contact.rel = 'noopener';
-      } else {
-        contact.style.display = 'none';
-      }
-    }
-
-    Array.prototype.forEach.call(document.querySelectorAll('[data-social]'), function (link) {
-      var key = link.dataset.social + 'Url';
-      var url = String(cfg[key] || '').trim();
-      if (/^https:\/\//i.test(url)) {
-        link.href = url;
-        link.target = '_blank';
-        link.rel = 'noopener';
-      } else {
-        link.style.display = 'none';
-      }
-    });
-
-    [['[data-map-link]', 'mapsUrl'], ['[data-review-link]', 'reviewUrl'], ['[data-whatsapp-channel]', 'whatsappChannelUrl']]
-      .forEach(function (pair) {
-        Array.prototype.forEach.call(document.querySelectorAll(pair[0]), function (link) {
-          var url = String(cfg[pair[1]] || '').trim();
-          if (/^https:\/\//i.test(url)) {
-            link.href = url;
-            link.target = '_blank';
-            link.rel = 'noopener';
-          } else {
-            link.style.display = 'none';
-          }
-        });
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          io.unobserve(entry.target);
+        }
       });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    items.forEach(function (el, i) {
+      if (!el.style.getPropertyValue('--reveal-delay')) {
+        var stagger = Number(el.dataset.revealStagger || 0);
+        if (stagger) el.style.setProperty('--reveal-delay', (stagger * 70) + 'ms');
+      }
+      io.observe(el);
+    });
+  })();
+
+  /* ---------- floating WhatsApp button ---------- */
+
+  (function whatsappFloat() {
+    if (document.body.classList.contains('admin-page')) return;
+    if ($('.whatsapp-float')) return;
+    var a = document.createElement('a');
+    a.className = 'whatsapp-float';
+    a.href = '#';
+    a.setAttribute('aria-label', 'Chat with Super Jewellers on WhatsApp');
+    a.innerHTML =
+      '<svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true" fill="currentColor">' +
+      '<path d="M16.04 4C9.43 4 4.07 9.36 4.07 15.97c0 2.11.55 4.17 1.6 5.99L4 28.5l6.7-1.75a11.9 11.9 0 0 0 5.34 1.28h.01c6.6 0 11.97-5.36 11.97-11.97C28.02 9.36 22.64 4 16.04 4zm0 21.85h-.01a9.9 9.9 0 0 1-5.04-1.38l-.36-.21-3.98 1.04 1.06-3.88-.24-.4a9.87 9.87 0 0 1-1.51-5.26c0-5.46 4.44-9.9 9.9-9.9 2.64 0 5.13 1.03 7 2.9a9.83 9.83 0 0 1 2.9 7c0 5.46-4.44 9.9-9.9 9.9zm5.43-7.42c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.64.07-.3-.15-1.25-.46-2.38-1.47-.88-.78-1.47-1.75-1.64-2.04-.17-.3-.02-.46.13-.6.13-.13.3-.35.44-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.6-.92-2.2-.24-.58-.49-.5-.67-.5h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.01-1.04 2.47s1.06 2.86 1.21 3.06c.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.56-.35z"/></svg>' +
+      '<span>WhatsApp</span>';
+    document.body.appendChild(a);
+
+    var ready = function () {
+      if (store.waNumber && store.waNumber()) {
+        a.href = store.waLink(store.generalMessage ? store.generalMessage() : '');
+        a.target = '_blank'; a.rel = 'noopener';
+      } else if (cfg.whatsappChannelUrl) {
+        a.href = cfg.whatsappChannelUrl; a.target = '_blank'; a.rel = 'noopener';
+      } else {
+        a.href = store.telLink ? store.telLink() : 'tel:' + String(cfg.businessPhone || '').replace(/[^\d+]/g, '');
+      }
+    };
+    ready();
+  })();
+
+  /* ---------- homepage: dynamic product sections ---------- */
+
+  function productCard(p, i) {
+    var img = escapeHtml(typeof store.primaryImage === 'function' ? store.primaryImage(p) : fallbackImage(p.category));
+    var name = escapeHtml(p.name);
+    var status = p.availability && p.availability !== 'available'
+      ? '<span class="product-status status-' + escapeHtml(p.availability) + '">' + escapeHtml(availabilityLabel(p.availability)) + '</span>' : '';
+    var badges = '';
+    if (p.newArrival) badges += '<span class="product-flag flag-new">NEW</span>';
+    if (p.featured) badges += '<span class="product-flag flag-featured">FEATURED</span>';
+    return '<article class="product-card" data-reveal data-reveal-stagger="' + (i % 4) + '" data-id="' + escapeHtml(p.id) + '">' +
+      '<a class="product-card-link" href="product.html?id=' + encodeURIComponent(p.id) + '" aria-label="View ' + name + '">' +
+      '<div class="product-photo">' +
+      '<img loading="lazy" decoding="async" src="' + img + '" alt="' + name + '" ' +
+      'onerror="this.onerror=null;this.src=\'' + fallbackImage(p.category) + '\'">' +
+      badges + status +
+      '<span class="product-open" aria-hidden="true">↗</span>' +
+      '</div>' +
+      '<div class="product-info">' +
+      '<span class="category-label">' + escapeHtml(p.type || p.category || 'Jewellery') + '</span>' +
+      '<h3>' + name + '</h3>' +
+      (p.code ? '<span class="product-code">' + escapeHtml(p.code) + '</span>' : '') +
+      '<span class="product-price">' + formatPrice(p.price) + '</span>' +
+      '</div></a></article>';
   }
 
-  var yearEl = document.querySelector('#year');
+  function renderGrid(el, list, emptyHtml) {
+    if (!el) return;
+    if (!list.length) { el.innerHTML = emptyHtml || ''; return; }
+    el.innerHTML = list.map(productCard).join('');
+  }
+
+  var homeEmpty =
+    '<div class="empty-state">Our online collection is being photographed in the showroom.' +
+    '<br><small>Visit us at ' + escapeHtml(String(cfg.businessAddressShort || 'Bhande Galli, Latur')) +
+    ' — or call <a href="' + escapeHtml(store.telLink ? store.telLink() : '#') + '">' +
+    escapeHtml(String(cfg.businessPhone || '')) + '</a> to see today\'s designs.</small>' +
+    '<br><a class="text-link" href="catalog.html">Browse the catalogue <span>↗</span></a></div>';
+
+  (function homeSections() {
+    var featured = $('#featured-grid');
+    var arrivals = $('#arrivals-grid');
+    var popular = $('#popular-grid');
+    var bridal = $('#bridal-grid');
+    var catalogue = $('#home-catalog-grid');
+    if (!featured && !arrivals && !popular && !bridal && !catalogue) return;
+
+    if (!products.length) {
+      [featured, arrivals, popular, bridal, catalogue].forEach(function (el) {
+        if (el) {
+          var wrap = el.closest('[data-dynamic-section]') || el.parentElement;
+          if (wrap && wrap.hasAttribute('data-dynamic-section')) {
+            if (!wrap.querySelector('.empty-state')) wrap.insertAdjacentHTML('beforeend', homeEmpty);
+            el.remove();
+          } else { el.innerHTML = homeEmpty; }
+        }
+      });
+      var gridsWrap = $('#home-product-section');
+      if (gridsWrap && !gridsWrap.querySelector('.empty-state')) {
+        var h = gridsWrap.querySelector('[data-dynamic-title]');
+        if (h) h.innerHTML = 'The collection, <em>coming to life.</em>';
+      }
+      return;
+    }
+
+    renderGrid(featured, products.filter(function (p) { return p.featured; }).slice(0, 8),
+      '<div class="empty-state small">Featured pieces will appear here.<br><small>Ask in store for this week\'s highlights.</small></div>');
+    renderGrid(arrivals, products.filter(function (p) { return p.newArrival; }).slice(0, 8),
+      '<div class="empty-state small">No new arrivals listed yet.<br><small>Follow us on Instagram for fresh designs.</small></div>');
+    renderGrid(popular, products.filter(function (p) { return p.popular || p.featured; }).slice(0, 8),
+      '<div class="empty-state small">Popular pieces will appear here.</div>');
+    renderGrid(bridal, products.filter(function (p) { return p.category === 'Bridal'; }).slice(0, 8),
+      '<div class="empty-state small">Bridal pieces are being photographed.<br><small>Visit the showroom to view the bridal edit.</small></div>');
+    renderGrid(catalogue, products.slice(0, 8), homeEmpty);
+  })();
+
+  /* ---------- homepage: testimonials + Google reviews ---------- */
+
+  (function testimonials() {
+    var wrap = $('#testimonial-grid');
+    var list = Array.isArray(cfg.testimonials) ? cfg.testimonials : [];
+    if (!wrap) return;
+    if (!list.length) {
+      var g = $('#google-reviews-cta');
+      if (g) g.hidden = false;
+      wrap.closest('[data-dynamic-section]') && wrap.closest('[data-dynamic-section]').classList.add('reviews-only');
+      wrap.remove();
+      return;
+    }
+    wrap.innerHTML = list.slice(0, 6).map(function (t, i) {
+      return '<figure class="testimonial-card" data-reveal data-reveal-stagger="' + (i % 3) + '">' +
+        '<div class="stars" aria-label="' + escapeHtml(String(t.rating || 5)) + ' out of 5">★★★★★</div>' +
+        '<blockquote>' + escapeHtml(t.quote || '') + '</blockquote>' +
+        '<figcaption>' + escapeHtml(t.name || 'Verified customer') + '</figcaption></figure>';
+    }).join('');
+  })();
+
+  /* ---------- year ---------- */
+  var yearEl = $('#year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
   setBusinessInfo();
-  renderTabs();
-  renderProducts();
 })();
